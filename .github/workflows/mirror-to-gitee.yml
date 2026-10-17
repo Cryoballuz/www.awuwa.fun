@@ -1,0 +1,50 @@
+# GitHub → Gitee 自动镜像（2026-10-18）
+#
+# 作用：往 GitHub 推一次 ✓ 1 分钟内自动同步到 Gitee ✓
+#      服务器只从 Gitee 拉（国内快 ✓）→ 等于两边永远一致 ✓
+#
+# 放在 **书仓库** 的 `.github/workflows/mirror-to-gitee.yml` ✓
+# 不是放在网站源码里 ✗
+#
+# ── 用之前要配一个密钥 ───────────────────────────────────────────
+# 1. 去 Gitee：头像 → 设置 → 私人令牌 → 生成新令牌
+#    勾选权限：勾 `projects`（仓库读写）就够了 ✓
+#    复制那串令牌（只显示一次 ✓）
+# 2. 去 GitHub 的书仓库：Settings → Secrets and variables → Actions
+#    新建 secret，名字必须是 **GITEE_TOKEN** ✓
+#    值粘贴那串令牌 ✓
+# 3. 推一次这个 yml 文件 ✓ Actions 就会自动跑 ✓
+# ────────────────────────────────────────────────────────────────
+
+name: 同步到 Gitee
+
+on:
+  push:
+    branches: [main]
+  # 也可以在 Actions 页面手动点一下跑 ✓
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取完整历史（镜像需要全部提交 ✓ 浅克隆不行 ✗）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 推送到 Gitee
+        env:
+          # 用户名换成您 Gitee 的登录名 ✓
+          GITEE_USER: qeanbyoes
+          GITEE_REPO: www.awuwa.fun
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          set -e
+          if [ -z "$GITEE_TOKEN" ]; then
+            echo "❌ 没有配置 GITEE_TOKEN 这个 secret"
+            exit 1
+          fi
+          git remote add gitee "https://${GITEE_USER}:${GITEE_TOKEN}@gitee.com/${GITEE_USER}/${GITEE_REPO}.git"
+          git push --force gitee "HEAD:main"
+          echo "✅ 已同步到 Gitee"
